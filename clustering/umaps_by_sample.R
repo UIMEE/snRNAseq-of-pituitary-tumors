@@ -289,9 +289,7 @@ clusterid_sample <- list(
 #  Cluster 9 = Macrophages 
 #  Clusters 0, 1, 2, 3, 4, 5, 7, 8, 10 = NR5A1 Tumoral cells 
 "NF_002" = c(
-  rep("NR5A1 Tumoral cells", 6),
-  "unidentified",
-  rep("NR5A1 Tumoral cells", 2),
+  rep("NR5A1 Tumoral cells", 9),
   "Macrophages",
   "NR5A1 Tumoral cells"
 ),
@@ -307,8 +305,7 @@ clusterid_sample <- list(
 #  Muestra NF-004-2021
 #  Clusters 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11= NR5A1 Tumoral cells 
 "NF_004" = c(
-  rep("NR5A1 Tumoral cells", 12),
-  "unidentified"
+  rep("NR5A1 Tumoral cells", 13)
 ), 
 #  Muestra SC-001-2021
 #  Clusters 0, 1, 2, 3, 4, 5, 6, 8, 10,= NR5A1 Tumoral cells 
@@ -323,84 +320,181 @@ clusterid_sample <- list(
 )  
 )  
 
-################################################################################
-################################################################################
-#Etiquetando clusters por grupo
-
-  # Marcadores y poblaciónes por grupo:
-  #   
-  #   UMAP_ACs
-  # Cluster 15 = B Cells
-  # Cluster 11 = Pericytes
-  # Cluster 13 = Endothelium  
-  # Cluster 7, 14 = Macrophages
-  # Cluster 10 = NK cells
-  # Clusters 0, 1, 3, 4, 5, 6, 8, 9, 12, = GH Tumoral cells 1
-  # Clusters 0, 1, 3, 4, 5, 6, 8, 9, 12, = GH Tumoral cells 2
-  # 
-  # UMAP_CPs
-  # Cluster 21, 9 = Macrophages 1
-  # Cluster 17 = Macrophages 2
-  # Cluster 13 = NK cells
-  # Cluster 22 = Erythroid
-  # Cluster 14 = Pericytes
-  # Cluster 15 = Endothelium  
-  # Cluster 16 = POMC/GH tumor cells
-  # Cluster 19 = unidentified 
-  # Cluster 11 = Progenitor cells 
-  # Cluster 12, 4, 5, 20 = POMC/PRL tumor cells 
-  # Clusters 0, 1, 2, 3, 6, 7, 8, 10, 18 = POMC Carcinoma cells 
-  # 
-  # UMAP_NFs
-  # Cluster 11 = Macrophages 
-  # Clusters 2, 3, = NR5A1 Tumoral cells 1
-  # Clusters 13 = NR5A1 Tumoral cells 2
-  # Clusters 5, 6, 7, 8, 12 = NR5A1 Tumoral cells 3
-  # Clusters 0, 1, 4, 9, 10, 14, 15 = NR5A1 Tumoral cells 4
-  # Cluster pequeño sin numero en la parte superior = Pericytes
-  # Cluster 17 = NK cells
-  # Cluster 16 = Stem cells 
-  # 
-  # UMAP_Final
-  # Cluster 14, 17 = Macrophages 1
-  # Cluster 23 = Macrophages 1
-  # Cluster 18 = NK cells
-  # Cluster E = Erythroid
-  # Cluster 22 = Endothelium  
-  # Cluster 20 = Pericytes
-  # Cluster 24 = Stem cells 
-  # Clusters 5, 7, 8, 9, 10 = POMC Carcinoma cells 
-  # Clusters 2, 13 = GH Tumoral cells 1
-  # Clusters 15 = GH Tumoral cells 2
-  # Cluster 19 = Progenitor cells 
-  # Cluster 4 = POMC/PRL tumor cells 
-  # Cluster dentro del cluster 4 hay un circulo que delimita = POMC/PRL tumor cells 
-  # Clusters 12, 3 = NR5A1 Tumoral cells 1
-  # Cluster 21 = NR5A1 Tumoral cells 2
-  # Clusters 11, 1 = NR5A1 Tumoral cells 3
-  # Clusters 16, 6, 0 = NR5A1 Tumoral cells 4
-  # Cluster U = Unidentified
-
-scRNAEtiquetados <- lapply(
+### Construyendo objeto con etiquetas para cada muestra y cada tipo celular
+### Construyendo umaps
+scRNAEtiquetados_by_sample <- lapply(
   names(scRNA), 
   function(x){
     names(clusterid_sample[[x]]) <- levels(scRNA[[x]])
     scRNA[[x]] <- RenameIdents(scRNA[[x]], clusterid_sample[[x]])
-    p <- DimPlot(scRNA[[x]], reduction = "umap", label = TRUE)
-    pdf(file = paste0(scRNA[[x]], "_feature_plots", "/", "umap.pdf"),
+    dir.create(paste0(names(scRNA[x]), "_feature_plots"))
+    pdf(file = paste0(names(scRNA[x]), "_feature_plots", "/", "umap.pdf"),
         paper = "letter")
-    p
+    print(DimPlot(scRNA[[x]], reduction = "umap", label = TRUE))
     dev.off()
     return(scRNA[[x]])
   }
 )
 
-pdf(file = paste0(names(samples[i]), "_feature_plots", "/", "umap.pdf"),
+names(scRNAEtiquetados_by_sample) <- names(scRNA)
+
+################################################################################
+#Etiquetando clusters por grupo
+
+clusterid_group <- list(  
+#   UMAP_ACs
+# Cluster 15 = B Cells
+# Cluster 11 = Pericytes
+# Cluster 13 = Endothelium  
+# Cluster 7, 14 = Macrophages
+# Cluster 10 = NK cells
+# Clusters 0, 1, 3, 4, 5, 6, 8, 9, 12, = GH Tumoral cells 1
+# Clusters 0, 1, 3, 4, 5, 6, 8, 9, 12, = GH Tumoral cells 2
+ACs = c(
+  rep("GH Tumoral cells", 7),
+  "Macrophages",
+  rep("GH Tumoral cells", 2),
+  "NK cells",
+  "Pericytes",
+  "GH Tumoral cells",
+  "Endothelium",
+  "Macrophages",
+  "B Cells"
+),
+  
+# UMAP_CPs
+# Cluster 21, 9 = Macrophages 1
+# Cluster 17 = Macrophages 2
+# Cluster 13 = NK cells
+# Cluster 22 = Erythroid
+# Cluster 14 = Pericytes
+# Cluster 15 = Endothelium  
+# Cluster 16 = POMC/GH tumor cells
+# Cluster 19 = unidentified 
+# Cluster 11 = Progenitor cells 
+# Cluster 12, 4, 5, 20 = POMC/PRL tumor cells 
+# Clusters 0, 1, 2, 3, 6, 7, 8, 10, 18 = POMC Carcinoma cells 
+CPs = c(
+  rep("POMC Carcinoma cells", 4),
+  "POMC/PRL tumor cells",
+  "POMC/PRL tumor cells",
+  rep("POMC Carcinoma cells", 3),
+  "Macrophages 1",
+  "POMC Carcinoma cells",
+  "Progenitor cells",
+  "POMC/PRL tumor cells",
+  "NK cells",
+  "Pericytes",
+  "Endothelium",
+  "POMC/GH tumor cells",
+  "Macrophages 2",
+  "POMC Carcinoma cells",
+  "unidentified",
+  "POMC/PRL tumor cells",
+  "Macrophages 1",
+  "Erythroid"
+),
+# UMAP_NFs
+# Cluster 11 = Macrophages 
+# Clusters 2, 3, = NR5A1 Tumoral cells 1
+# Clusters 13 = NR5A1 Tumoral cells 2
+# Clusters 5, 6, 7, 8, 12 = NR5A1 Tumoral cells 3
+# Clusters 0, 1, 4, 9, 10, 14, 15 = NR5A1 Tumoral cells 4
+# Cluster pequeño sin numero en la parte superior = Pericytes
+# Cluster 17 = NK cells
+# Cluster 16 = Stem cells 
+NFs = c(
+  "NR5A1 Tumoral cells 4",
+  "NR5A1 Tumoral cells 4",
+  "NR5A1 Tumoral cells 1",
+  "NR5A1 Tumoral cells 1",
+  "NR5A1 Tumoral cells 4",
+  rep("NR5A1 Tumoral cells 3", 4),
+  "NR5A1 Tumoral cells 4",
+  "NR5A1 Tumoral cells 4",
+  "Macrophages",
+  "NR5A1 Tumoral cells 3",
+  "NR5A1 Tumoral cells 2",
+  "NR5A1 Tumoral cells 4",
+  "NR5A1 Tumoral cells 4",
+  "Stem cells",
+  "NK cells"
+  )
+)
+
+scRNAEtiquetados_by_group <- lapply(
+  names(scRNA), # hay que cambiar por el objeto que contenga los seurat por grupo
+  function(x){
+    names(clusterid_group[[x]]) <- levels(scRNA[[x]])
+    scRNA[[x]] <- RenameIdents(scRNA[[x]], clusterid_group[[x]])
+    dir.create(paste0(names(scRNA[x]), "_feature_plots"))
+    pdf(file = paste0(names(scRNA[x]), "_feature_plots", "/", "umap.pdf"),
+        paper = "letter")
+    print(DimPlot(scRNA[[x]], reduction = "umap", label = TRUE))
+    dev.off()
+    return(scRNA[[x]])
+  }
+)
+
+names(scRNAEtiquetados_by_group) <- names(scRNA)
+
+################################################################################ 
+# UMAP_Final
+# Cluster 14, 17 = Macrophages 1
+# Cluster 23 = Macrophages 1
+# Cluster 18 = NK cells
+# Cluster E = Erythroid
+# Cluster 22 = Endothelium  
+# Cluster 20 = Pericytes
+# Cluster 24 = Stem cells 
+# Clusters 5, 7, 8, 9, 10 = POMC Carcinoma cells 
+# Clusters 2, 13 = GH Tumoral cells 1
+# Clusters 15 = GH Tumoral cells 2
+# Cluster 19 = Progenitor cells 
+# Cluster 4 = POMC/PRL tumor cells 
+# Cluster dentro del cluster 4 hay un circulo que delimita = POMC/PRL tumor cells 
+# Clusters 12, 3 = NR5A1 Tumoral cells 1
+# Cluster 21 = NR5A1 Tumoral cells 2
+# Clusters 11, 1 = NR5A1 Tumoral cells 3
+# Clusters 16, 6, 0 = NR5A1 Tumoral cells 4
+# Cluster U = Unidentified
+
+clusterid_final <- c(
+  "NR5A1 Tumoral cells 4",
+  "NR5A1 Tumoral cells 3",
+  "GH Tumoral cells 1",
+  "NR5A1 Tumoral cells 1",
+  "POMC/PRL tumor cells",
+  "POMC Carcinoma cells",
+  "NR5A1 Tumoral cells 4",
+  rep("POMC Carcinoma cells", 4),
+  "NR5A1 Tumoral cells 3",
+  "NR5A1 Tumoral cells 1",
+  "GH Tumoral cells 1",
+  "Macrophages 1",
+  "GH Tumoral cells 2",
+  "NR5A1 Tumoral cells 4",
+  "Macrophages 1",
+  "NK cells",
+  "Progenitor cells",
+  "Pericytes",
+  "NR5A1 Tumoral cells 2",
+  "Endothelium",
+  "Macrophages 1",
+  "Stem cells"
+  )
+
+#Revisar estos comando para cambiar el nombre de cluster y construcción del umap
+#cambiar scRNA por el objeto seurat con el objeto scRNA_final (todas las muestras)
+scRNA <- RenameIdents(scRNA, clusterid_final)
+dir.create("final_feature_plots")
+pdf(file = paste0("final_feature_plots", "/", "umap.pdf"),
     paper = "letter")
-print(DimPlot(samples[[i]], reduction = "umap"))
+print(DimPlot(scRNA, reduction = "umap", label = TRUE))
 dev.off()
 
-names(scRNAEtiquetados) <- names(scRNA)
+################################################################################
+################################################################################
 
 #trajectorias modificar objetos
 #modificar
