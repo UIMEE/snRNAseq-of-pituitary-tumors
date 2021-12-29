@@ -1,6 +1,9 @@
 library("ggplot2")
 library("vroom")
 library("readr")
+library(Seurat)
+library(dplyr)
+library(patchwork)
 #Creando los UMAPS + cluster individuales + feature plots
 scRNA <- lapply(
   scRNA, 
@@ -210,124 +213,193 @@ save(
 )
 
 #features
+################################################################################
+################################################################################
+#Etiquetando clusters por muestra
+clusterid_sample <- list(
+#  Muestra CU-002-2021
+#  Clusters 0, 1, 2, 3, 4, 5, 6, 8, 10, 12, 13, = GH Tumoral cells 
+#  Cluster 11 = Pericytes
+#  Cluster 14 = Endothelium  
+#  Cluster 7 = Macrophages
+#  Cluster 9 grande= NK cells
+#  Cluster 9 pequeño= B cells
+"CU_002" = c(
+    rep("GH Tumoral cells", 7),
+    "Macrophages",
+    "GH Tumoral cells",
+    "NK cells & B cells",
+    "GH Tumoral cells",
+    "Pericytes",
+    rep("GH Tumoral cells", 2),
+    "Endothelium"
+  ),
+#  Muestra AC-001-2021
+#  Clusters 0, 1, 2, 3, 4, 5, 7= GH Tumoral cells 
+#  Cluster 6 = Macrophages 
+#  Cluster 8 = NK cells
+"AC_001" = c(
+  rep("GH Tumoral cells", 6),
+  "Macrophages",
+  "GH Tumoral cells",
+  "NK cells"
+),
+#  Muestra CP-001-2021
+#  Clusters 0, 1, 2, 3, 4, 5, 7, 8, 10 = POMC Carcinoma cells 
+#  Cluster 6 = Macrophages 
+#  Cluster 9 = NK cells
+#  Cluster 13 = Erythroid
+#  Cluster 12 = Pericytes
+#  Cluster 11 = unidentified 
+"CP_001" = c(
+  rep("POMC Carcinoma cells", 6),
+  "Macrophages",
+  "POMC Carcinoma cells",
+  "POMC Carcinoma cells",
+  "NK cells",
+  "POMC Carcinoma cells",
+  "unidentified",
+  "Pericytes",
+  "Erythroid"
+),
+#  Muestra AC-002-2021
+#  Cluster 7, 16 = Macrophages 
+#  Cluster 11 = NK cells 
+#  Cluster 8 = Endothelium  
+#  Cluster 10 = Pericytes
+#  Cluster 15, 4 = Progenitor cells 
+#  Cluster 6, 9, 17, = POMC/GH tumor cells
+# Cluster 0, 1, 2, 3, 5, 12, 13, 14, = POMC/PRL tumor cells
+"AC_002" = c(
+  rep("POMC/PRL tumor cells", 4),
+  "Progenitor cells",
+  "POMC/PRL tumor cells",
+  "POMC/GH tumor cells",
+  "Macrophages",
+  "Endothelium",
+  "POMC/GH tumor cells",
+  "Pericytes",
+  "NK cells",
+  rep("POMC/PRL tumor cells", 3),
+  "Progenitor cells",
+  "Macrophages",
+  "POMC/GH tumor cells"
+),
+#  Muestra NF-002-2021
+#  Cluster 9 = Macrophages 
+#  Clusters 0, 1, 2, 3, 4, 5, 7, 8, 10 = NR5A1 Tumoral cells 
+"NF_002" = c(
+  rep("NR5A1 Tumoral cells", 6),
+  "unidentified",
+  rep("NR5A1 Tumoral cells", 2),
+  "Macrophages",
+  "NR5A1 Tumoral cells"
+),
+#  Muestra NF-003-2021
+#  Cluster 4 = Stem Cells 
+#  Clusters 0, 1, 2, 3, = NR5A1 Tumoral cells 
+#  Cluster 5 = Macrophages 
+"NF_003" = c(
+  rep("NR5A1 Tumoral cells", 4),
+  "Stem Cells",
+  "Macrophages"
+),
+#  Muestra NF-004-2021
+#  Clusters 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11= NR5A1 Tumoral cells 
+"NF_004" = c(
+  rep("NR5A1 Tumoral cells", 12),
+  "unidentified"
+), 
+#  Muestra SC-001-2021
+#  Clusters 0, 1, 2, 3, 4, 5, 6, 8, 10,= NR5A1 Tumoral cells 
+#  Cluster 7 = Macrophages 
+#  Cluster 9 = NK cells
+"SC_001" = c(
+  rep("NR5A1 Tumoral cells", 7),
+  "Macrophages",
+  "NR5A1 Tumoral cells",
+  "NK cells",
+  "NR5A1 Tumoral cells"
+)  
+)  
 
-#Etiquetando clusters
-clusterid <- list(
-  # Muestra AC-001-2021
-  # Clusters 0, 1, 2, 3, 4, 5, 7= POU1F1 Tumoral cells 
-  # Cluster 6 = Macrophages 
-  # Cluster 8 = NK cells
-  "AC_001" =  c(
-    rep("POU1F1 Tumoral cells", 6), #0 al 5
-    "Macrophages", #6
-    "POU1F1 Tumoral cells", #7
-    "NK cells"
-  ),
-  # Muestra AC-002-2021
-  # Cluster 7, 16 = Macrophages 
-  # Cluster 11 = NK cells 
-  # Cluster 8 = Endothelium  
-  # Cluster 10 = Pericytes
-  # Cluster 15, 4 = Progenitor cells 
-  # Cluster 6, 9, 17, = POMC/GH tumor cells
-  # Cluster 0, 1, 2, 3, 5, 12, 13, 14, = POMC/PRL tumor cells
-  "AC_002" =  c(
-    rep("POMC/PRL tumor cells", 4), #0 al 3
-    "Progenitor cells", #4
-    "POMC/PRL tumor cells", #5
-    "POMC/GH tumor cells",  #6
-    "Macrophages",          #7
-    "Endothelium",          #8
-    "POMC/GH tumor cells",  #9
-    "Pericytes",            #10
-    "NK cells ",            #11
-    rep("POMC/PRL tumor cells", 3), #12 al 14
-    "Progenitor cells",     #15
-    "Macrophages",          #16 
-    "POMC/GH tumor cells"   #17
-  ),
-  # Muestra CU-002-2021
-  # Clusters 0, 1, 2, 3, 4, 5, 6, 8, 10, 12, 13, = POU1F1 Tumoral cells 
+################################################################################
+################################################################################
+#Etiquetando clusters por grupo
+
+  # Marcadores y poblaciónes por grupo:
+  #   
+  #   UMAP_ACs
+  # Cluster 15 = B Cells
   # Cluster 11 = Pericytes
-  # Cluster 14 = Endothelium  
-  # Cluster 7 = Macrophages
-  # Cluster 9 = NK cells
-  "CU_002" = c(
-    rep("POU1F1 Tumoral cells", 7),   #0 al 6
-    "Macrophages",                    #7
-    "POU1F1 Tumoral cells",           #8
-    "NK cells",                       #9
-    "POU1F1 Tumoral cells",           #10
-    "Pericytes",                      #11
-    rep("POU1F1 Tumoral cells", 2),   #12 y 13
-    "Endothelium"                     #14
-  ),
-  # Muestra CP-001-2021
-  # Clusters 0, 1, 2, 3, 4, 5, 7, 8, 10 = TBX19 Tumoral cells 
-  # Cluster 6 = Macrophages 
-  # Cluster 9 = NK cells
-  # Cluster 13 = Erythroid
-  # Cluster 12 = Pericytes
-  # Cluster 11 = unidentified
-  "CP_001" = c(
-    rep("TBX19 Tumoral cells", 6), #0 al 5
-    "Macrophages",                 #6
-    rep("TBX19 Tumoral cells", 2), #7 y 8
-    "NK cells",                    #9
-    "TBX19 Tumoral cells",         #10
-    "unidentified",                #11
-    "Pericytes",                   #12
-    "Erythroid"                    #13
-  ),
-  # Muestra SC-001-2021
-  # Clusters 0, 1, 2, 3, 4, 5, 6, 8, 10, 11= NR5A1 Tumoral cells 
-  # Cluster 7 = Macrophages 
-  # Cluster 9 = NK cells
-  "SC_001" = c(
-    rep("NR5A1 Tumoral cells", 7),  #0 al 6
-    "Macrophages",                  #7
-    "NR5A1 Tumoral cells",          #8
-    "NK cells",                     #9
-    "NR5A1 Tumoral cells"           #10 no hay grupo 11
-  ),
-  # Muestra NF-002-2021
-  # Cluster 9 = Macrophages 
-  # Clusters 0, 1, 2, 3, 4, 5, 7, 8, 10 = NR5A1 Tumoral cells
-  "NF_002" = c(
-    rep("NR5A1 Tumoral cells", 9), #0 al 8 ojo faltaba el 6
-    "Macrophages",                 #9
-    "NR5A1 Tumoral cells"          #10
-  ),
-  # Muestra NF-003-2021
-  # Cluster 4 = Stem Cells 
-  # Clusters 0, 1, 2, 3, 5, = NR5A1 Tumoral cells 
-  "NF_003" = c(
-    rep("NR5A1 Tumoral cells", 4), #0 al 3
-    "Stem Cells",                  #4
-    "NR5A1 Tumoral cells"          #5
-  ),
-  # Muestra NF-004-2021
-  # Clusters 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11= NR5A1 Tumoral cells 
-  "NF_004" = c(
-    rep("NR5A1 Tumoral cells", 13) #todos
-  )
-)
+  # Cluster 13 = Endothelium  
+  # Cluster 7, 14 = Macrophages
+  # Cluster 10 = NK cells
+  # Clusters 0, 1, 3, 4, 5, 6, 8, 9, 12, = GH Tumoral cells 1
+  # Clusters 0, 1, 3, 4, 5, 6, 8, 9, 12, = GH Tumoral cells 2
+  # 
+  # UMAP_CPs
+  # Cluster 21, 9 = Macrophages 1
+  # Cluster 17 = Macrophages 2
+  # Cluster 13 = NK cells
+  # Cluster 22 = Erythroid
+  # Cluster 14 = Pericytes
+  # Cluster 15 = Endothelium  
+  # Cluster 16 = POMC/GH tumor cells
+  # Cluster 19 = unidentified 
+  # Cluster 11 = Progenitor cells 
+  # Cluster 12, 4, 5, 20 = POMC/PRL tumor cells 
+  # Clusters 0, 1, 2, 3, 6, 7, 8, 10, 18 = POMC Carcinoma cells 
+  # 
+  # UMAP_NFs
+  # Cluster 11 = Macrophages 
+  # Clusters 2, 3, = NR5A1 Tumoral cells 1
+  # Clusters 13 = NR5A1 Tumoral cells 2
+  # Clusters 5, 6, 7, 8, 12 = NR5A1 Tumoral cells 3
+  # Clusters 0, 1, 4, 9, 10, 14, 15 = NR5A1 Tumoral cells 4
+  # Cluster pequeño sin numero en la parte superior = Pericytes
+  # Cluster 17 = NK cells
+  # Cluster 16 = Stem cells 
+  # 
+  # UMAP_Final
+  # Cluster 14, 17 = Macrophages 1
+  # Cluster 23 = Macrophages 1
+  # Cluster 18 = NK cells
+  # Cluster E = Erythroid
+  # Cluster 22 = Endothelium  
+  # Cluster 20 = Pericytes
+  # Cluster 24 = Stem cells 
+  # Clusters 5, 7, 8, 9, 10 = POMC Carcinoma cells 
+  # Clusters 2, 13 = GH Tumoral cells 1
+  # Clusters 15 = GH Tumoral cells 2
+  # Cluster 19 = Progenitor cells 
+  # Cluster 4 = POMC/PRL tumor cells 
+  # Cluster dentro del cluster 4 hay un circulo que delimita = POMC/PRL tumor cells 
+  # Clusters 12, 3 = NR5A1 Tumoral cells 1
+  # Cluster 21 = NR5A1 Tumoral cells 2
+  # Clusters 11, 1 = NR5A1 Tumoral cells 3
+  # Clusters 16, 6, 0 = NR5A1 Tumoral cells 4
+  # Cluster U = Unidentified
 
 scRNAEtiquetados <- lapply(
   names(scRNA), 
   function(x){
-    names(clusterid[[x]]) <- levels(scRNA[[x]])
-    scRNA[[x]] <- RenameIdents(scRNA[[x]], clusterid[[x]])
-    p <- DimPlot(scRNA[[x]], reduction = "umap", label = TRUE, pt.size = 0.5)
-    ggsave(
-      p,
-      file = paste0("results/", "Etiqueta_UMAP_", x, ".pdf"),
-      height = 6,
-      width  = 7
-    )
+    names(clusterid_sample[[x]]) <- levels(scRNA[[x]])
+    scRNA[[x]] <- RenameIdents(scRNA[[x]], clusterid_sample[[x]])
+    p <- DimPlot(scRNA[[x]], reduction = "umap", label = TRUE)
+    pdf(file = paste0(scRNA[[x]], "_feature_plots", "/", "umap.pdf"),
+        paper = "letter")
+    p
+    dev.off()
     return(scRNA[[x]])
   }
 )
+
+pdf(file = paste0(names(samples[i]), "_feature_plots", "/", "umap.pdf"),
+    paper = "letter")
+print(DimPlot(samples[[i]], reduction = "umap"))
+dev.off()
+
 names(scRNAEtiquetados) <- names(scRNA)
 
 #trajectorias modificar objetos
@@ -516,6 +588,6 @@ DimPlot(scRNAEtiquetados.integrated$NFs, group.by = "orig.ident")
 DimPlot(scRNAEtiquetados.integrated$NFs, group.by = "orig.ident")
 
 
-#################3
+#################
 
 
